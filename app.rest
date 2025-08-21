@@ -1,0 +1,13 @@
+http://localhost:3000/?name=aseo
+
+###
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+    "name": "udin",
+    "password": "Udin12345!",
+    "email": "udin@gmail.com"
+}
+
+###

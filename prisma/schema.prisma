@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model category {
+  id           String    @id @default(uuid())
+  name         String    @db.VarChar(200)
+  description  String    @db.Text
+  productCount Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  product      product[]
+}
+
+model product {
+  id         String    @id @default(uuid())
+  name       String    @db.VarChar(200)
+  price      Int
+  categoryId String?
+  imageUrl   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  category   category? @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
+
+  orderItem OrderItem[]
+
+  @@index([categoryId], map: "Product_categoryId_fkey")
+}
+
+model Cupon {
+  id           String      @id @default(uuid())
+  code         String      @unique @db.VarChar(50)
+  jenis_diskon JenisDiskon
+  nilai_diskon Decimal
+  expiration   DateTime
+  is_active    Boolean
+
+  user   user?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  order Order[]
+
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id String @id @default(uuid())
+
+  subtotal   Int
+  tax        Int
+  grandTotal Int
+
+  status StatusPesanan @default(pending)
+
+  // Relasi antar data dari User dan Cupon
+  user    user?   @relation(fields: [userId], references: [id])
+  userId  String?
+  Cupon   Cupon?  @relation(fields: [cuponId], references: [id])
+  cuponId String?
+
+  orderItem OrderItem[]
+
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model OrderItem {
+  id String @id @default(uuid())
+
+  orderId   String
+  productId String
+
+  Order   Order   @relation(fields: [orderId], references: [id])
+  product product @relation(fields: [productId], references: [id])
+
+  quantity  Int
+  price     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model user {
+  id       String    @id @default(uuid())
+  name     String    @db.Text
+  email    String    @unique(map: "User_email_key")
+  password String    @db.Text
+  role     user_role @default(USER)
+
+  order     Order[]
+  cupon     Cupon[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum user_role {
+  ADMIN
+  USER
+}
+
+enum JenisDiskon {
+  persentase
+  nominal
+}
+
+enum StatusPesanan {
+  pending
+  waiting_payment
+  paid
+  processing
+  shipped
+  completed
+  cancelled
+}
