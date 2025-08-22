@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 
 import authRouter from "./routes/auth.route.js";
 import userRouter from "./routes/user.route.js";
+import productRouter from "./routes/product.route.js";
 
 dotenv.config();
 const app = express();
@@ -21,6 +22,7 @@ app.get("/", (req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/users", userRouter);
+app.use("/products", productRouter);
 
 app.listen(port, () => {
   console.log(`Example app listening on port http://localhost:${port}`);
