@@ -7,6 +7,7 @@ const orderItemSchema = Joi.object({
 
 export const createOrderSchema = Joi.object({
   items: Joi.array().items(orderItemSchema).required(),
+  couponCode: Joi.string().optional(),
 });
 
 export const updateOrderStatusSchema = Joi.object({

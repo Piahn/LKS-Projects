@@ -1,7 +1,9 @@
 import { prisma } from "../utils/prisma.js";
 
 // Tahap 1
-export const createOrderService = async (userId, items) => {
+export const createOrderService = async (userId, payload) => {
+  const { items, couponCode } = payload;
+
   const productIds = items.map((item) => item.productId);
   const products = await prisma.product.findMany({
     where: {
@@ -9,6 +11,11 @@ export const createOrderService = async (userId, items) => {
     },
   });
 
+  // Coupons Data
+  let jumlah_diskon = 0;
+  let couponId = null;
+
+  // Items data
   let subtotal = 0;
   for (const item of items) {
     const product = products.find((p) => p.id === item.productId);
@@ -20,8 +27,46 @@ export const createOrderService = async (userId, items) => {
     subtotal += product.price * item.quantity;
   }
 
+  // Perbaruan data coupons (ketika ngecreate coupon)
+  if (couponCode) {
+    const coupon = await prisma.cupon.findUnique({
+      where: {
+        code: couponCode,
+      },
+    });
+
+    if (coupon.expiration < new Date().toDateString()) {
+      await prisma.cupon.update({
+        where: {
+          id: coupon.id,
+        },
+        data: {
+          is_active: false,
+        },
+      });
+    }
+
+    if (!coupon) throw new Error("Cupon code is not valid.");
+    if (!coupon.is_active) throw new Error("This cupon is no longer active.");
+    if (coupon.userId !== userId) {
+      throw new Error("This cupon is not valid for this user."); // <-- Keamanan Kunci!
+    }
+
+    if (coupon.jenis_diskon === "nominal") {
+      jumlah_diskon = coupon.nilai_diskon;
+    } else if (coupon.jenis_diskon === "persentase") {
+      jumlah_diskon = subtotal * (coupon.nilai_diskon / 100);
+    }
+
+    couponId = coupon.id;
+  }
+
   const tax = subtotal * 0.1; // dengan pajak 10%
-  const grandTotal = subtotal + tax;
+  const grandTotal = subtotal + tax - jumlah_diskon;
+
+  console.log(
+    `Subtotal: ${subtotal}, Tax: ${tax}, diskon: ${jumlah_diskon}, Grand Total: ${grandTotal}`
+  );
 
   const createdOrder = await prisma.$transaction(async (tx) => {
     const order = await tx.order.create({
@@ -30,6 +75,7 @@ export const createOrderService = async (userId, items) => {
         subtotal,
         tax,
         grandTotal,
+        cuponId: couponId,
       },
     });
 

@@ -15,9 +15,9 @@ export const createOrder = async (req, res) => {
     const userId = req.user.id;
     const payload = req.body;
 
-    const { items } = await createOrderSchema.validateAsync(payload);
+    const orderData = await createOrderSchema.validateAsync(payload);
 
-    const newOrder = await createOrderService(userId, items);
+    const newOrder = await createOrderService(userId, orderData);
 
     res.status(201).json({
       status: "success",
@@ -25,7 +25,8 @@ export const createOrder = async (req, res) => {
       data: newOrder,
     });
   } catch (error) {
-    const statusCode = error.isJoi ? 400 : 500;
+    const isCuponError = error.message.toLowerCase().includes("cupon");
+    const statusCode = error.isJoi || isCuponError ? 400 : 500;
     res.status(statusCode).json({
       status: "error",
       message: error.message,
