@@ -35,6 +35,8 @@ export const createOrderService = async (userId, payload) => {
       },
     });
 
+    if (!coupon) throw new Error("Cupon code is not valid.");
+
     if (coupon.expiration < new Date().toDateString()) {
       await prisma.cupon.update({
         where: {
@@ -46,7 +48,6 @@ export const createOrderService = async (userId, payload) => {
       });
     }
 
-    if (!coupon) throw new Error("Cupon code is not valid.");
     if (!coupon.is_active) throw new Error("This cupon is no longer active.");
     if (coupon.userId !== userId) {
       throw new Error("This cupon is not valid for this user."); // <-- Keamanan Kunci!
@@ -59,14 +60,17 @@ export const createOrderService = async (userId, payload) => {
     }
 
     couponId = coupon.id;
+
+    // Nambahkan logic delete cupon setelah di pake
+    await prisma.cupon.delete({
+      where: {
+        id: coupon.id,
+      },
+    });
   }
 
   const tax = subtotal * 0.1; // dengan pajak 10%
   const grandTotal = subtotal + tax - jumlah_diskon;
-
-  console.log(
-    `Subtotal: ${subtotal}, Tax: ${tax}, diskon: ${jumlah_diskon}, Grand Total: ${grandTotal}`
-  );
 
   const createdOrder = await prisma.$transaction(async (tx) => {
     const order = await tx.order.create({
@@ -99,10 +103,11 @@ export const createOrderService = async (userId, payload) => {
 };
 
 // Tahap ke 2
-export const getOrdersByUserService = async (userId) => {
+export const getOrdersByUserService = async (userId, skip, limit) => {
   return await prisma.order.findMany({
     where: {
       userId: userId,
+      is_archived: false,
     },
     include: {
       orderItem: {
@@ -116,6 +121,8 @@ export const getOrdersByUserService = async (userId) => {
         },
       },
     },
+    skip: skip,
+    take: limit,
     orderBy: {
       createdAt: "desc", // menampilkan order terbaru
     },

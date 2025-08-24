@@ -55,7 +55,8 @@ model Order {
   tax        Int
   grandTotal Int
 
-  status StatusPesanan @default(pending)
+  status      StatusPesanan @default(pending)
+  is_archived Boolean       @default(false)
 
   // Relasi antar data dari User dan Cupon
   user    user?   @relation(fields: [userId], references: [id])
@@ -68,6 +69,8 @@ model Order {
   paidAt    DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  @@index([status])
 }
 
 model OrderItem {

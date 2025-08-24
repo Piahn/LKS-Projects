@@ -16,14 +16,18 @@ export const createCouponService = async (payload) => {
   });
 };
 
-export const getAllCouponService = async () => {
+export const getAllCouponService = async (userId) => {
   return await prisma.cupon.findMany({
-    include: {
-      user: {
-        select: {
-          name: true,
-        },
-      },
+    where: {
+      userId: userId,
+    },
+    select: {
+      id: true,
+      code: true,
+      jenis_diskon: true,
+      nilai_diskon: true,
+      expiration: true,
+      is_active: true,
     },
   });
 };

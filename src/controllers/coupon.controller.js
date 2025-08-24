@@ -24,7 +24,8 @@ export const createCoupon = async (req, res) => {
 
 export const getAllCoupons = async (req, res) => {
   try {
-    const coupons = await couponService.getAllCouponService();
+    const userId = req.user.id;
+    const coupons = await couponService.getAllCouponService(userId);
 
     res.status(200).json({
       status: "success",
@@ -52,8 +53,8 @@ export const deleteCoupon = async (req, res) => {
   } catch (error) {
     const statusCode = error.message.includes("not found") ? 404 : 500;
     res.status(statusCode).json({
-        status: 'error',
-        message: error.message
-    })
+      status: "error",
+      message: error.message,
+    });
   }
 };

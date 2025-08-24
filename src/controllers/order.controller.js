@@ -38,7 +38,22 @@ export const createOrder = async (req, res) => {
 export const getMyOrder = async (req, res) => {
   try {
     const userId = req.user.id;
-    const orders = await getOrdersByUserService(userId);
+
+    // Ambil nomor halaman dari query URL, default ke halaman 1
+    const page = parseInt(req.query.page) || 1;
+    // Tentukan berapa item per halaman
+    const limit = 20;
+    // Hitung berapa item yang harus di-skip
+    const skip = (page - 1) * limit;
+
+    const orders = await getOrdersByUserService(userId, skip, limit);
+
+    if (orders.length === 0) {
+      return res.status(404).json({
+        status: "success",
+        message: "No order found",
+      });
+    }
 
     res.status(200).json({
       status: "success",

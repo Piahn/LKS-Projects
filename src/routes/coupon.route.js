@@ -8,10 +8,10 @@ import {
 
 const router = Router();
 
-router.use(authMiddleware, roleCheck(["ADMIN"]));
+router.use(authMiddleware);
 
-router.post("/", createCoupon);
+router.post("/", roleCheck(["ADMIN"]), createCoupon);
 router.get("/", getAllCoupons);
-router.get("/:id", deleteCoupon);
+router.delete("/:id", roleCheck(["ADMIN"]), deleteCoupon);
 
 export default router;
