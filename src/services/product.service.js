@@ -78,9 +78,20 @@ export const updateProductService = async (productId, payload) => {
     throw new Error("Product not found");
   }
 
+  const dataToUpdate = { ...payload };
+
+  if (payload.categoryId) {
+    dataToUpdate.category = {
+      connect: {
+        id: payload.categoryId,
+      },
+    };
+    delete dataToUpdate.categoryId;
+  }
+
   const updatedProduct = await prisma.product.update({
     where: { id: productId },
-    data: payload,
+    data: dataToUpdate,
   });
 
   return updatedProduct;

@@ -1,13 +1,10 @@
 import { Router } from "express";
 import { authMiddleware, roleCheck } from "../middleware/auth.middleware.js";
-import { getAllUsers, getMyProfile } from "../controllers/user.controller.js";
+import { getDashboardStats } from "../controllers/dashboard.controller.js";
 
 const router = Router();
-
 router.use(authMiddleware);
 
-router.get("/me", getMyProfile);
-
-router.get("/", roleCheck(["ADMIN"]), getAllUsers);
+router.get("/", roleCheck(["ADMIN"]), getDashboardStats);
 
 export default router;

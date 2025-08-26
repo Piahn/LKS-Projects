@@ -62,9 +62,12 @@ export const createOrderService = async (userId, payload) => {
     couponId = coupon.id;
 
     // Nambahkan logic delete cupon setelah di pake
-    await prisma.cupon.delete({
+    await prisma.cupon.update({
       where: {
         id: coupon.id,
+      },
+      data: {
+        is_active: false,
       },
     });
   }
@@ -120,6 +123,7 @@ export const getOrdersByUserService = async (userId, skip, limit) => {
           },
         },
       },
+      Cupon: true,
     },
     skip: skip,
     take: limit,

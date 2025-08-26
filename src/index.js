@@ -9,6 +9,7 @@ import productRouter from "./routes/product.route.js";
 import categoryRouter from "./routes/category.route.js";
 import orderRouter from "./routes/order.route.js";
 import couponRouter from "./routes/coupon.route.js";
+import dashboardRouter from "./routes/dashboard.route.js";
 
 dotenv.config();
 const app = express();
@@ -29,6 +30,7 @@ app.use("/products", productRouter);
 app.use("/categories", categoryRouter);
 app.use("/orders", orderRouter);
 app.use("/coupons", couponRouter);
+app.use("/dashboard", dashboardRouter);
 
 app.listen(port, () => {
   console.log(`Example app listening on port http://localhost:${port}`);
