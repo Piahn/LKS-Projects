@@ -26,11 +26,12 @@ app.get("/", (req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/users", userRouter);
+app.use("/dashboard", dashboardRouter);
+
 app.use("/products", productRouter);
 app.use("/categories", categoryRouter);
 app.use("/orders", orderRouter);
 app.use("/coupons", couponRouter);
-app.use("/dashboard", dashboardRouter);
 
 app.listen(port, () => {
   console.log(`Example app listening on port http://localhost:${port}`);

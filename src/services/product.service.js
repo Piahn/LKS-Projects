@@ -116,11 +116,25 @@ export const deleteProductService = async (productId) => {
     throw new Error("Product not found");
   }
 
-  await prisma.category.update({
-    where: { id: product.category.id },
-    data: {
-      productCount: product.category.productCount - 1,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.orderItem.deleteMany({
+      where: {
+        productId: productId,
+      },
+    });
+
+    if (product.category) {
+      await tx.category.update({
+        where: {
+          id: product.category.id,
+        },
+        data: {
+          productCount: {
+            decrement: 1,
+          },
+        },
+      });
+    }
   });
 
   await prisma.product.delete({
