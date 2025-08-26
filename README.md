@@ -5,14 +5,15 @@ npm install @prisma/client@6.14.0 bcrypt@6.0.0 body-parser@2.2.0 cors@2.8.5 dote
 ```
 
 -Dev
+
 ```
 npm install --save-dev nodemon@3.1.10 prisma@6.14.0
 ```
 
-
--------------------------------------------------------------
+---
 
 # src/service/order.service.js
+
 ```
 
 import { prisma } from "../utils/db.js";
@@ -194,6 +195,7 @@ export const updateOrderStatusService = async (orderId, statusData) => {
 ```
 
 # src/service/order.controller.js
+
 ```
 import {
   createOrderService,
@@ -361,6 +363,7 @@ export const getDashboardStatsService = async () => {
 ```
 
 # src/service/auth.middleware.js
+
 ```
 import jwt from "jsonwebtoken";
 import { prisma } from "../utils/db.js";
@@ -425,4 +428,42 @@ export const roleCheck = (roles) => {
   };
 };
 
+```
+
+# src/service/product.service.js
+
+```
+export const updateProductService = async (productId, payload) => {
+  const product = await prisma.product.findUnique({
+    where: {
+      id: productId,
+    },
+  });
+
+  if (!product) {
+    throw new Error("Product not found");
+  }
+
+  const dataToUpdate = { ...payload };
+
+  if (!payload.categoryId) throw new Error("Category not found");
+
+  if (payload.categoryId) {
+    dataToUpdate.category = {
+      connect: {
+        id: payload.categoryId,
+      },
+    };
+    delete dataToUpdate.categoryId;
+  }
+
+  const updateProduct = await prisma.product.update({
+    where: {
+      id: productId,
+    },
+    data: dataToUpdate,
+  });
+
+  return updateProduct;
+};
 ```
