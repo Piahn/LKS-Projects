@@ -1,0 +1,194 @@
+requirement Tools Backend:
+
+```
+npm install @prisma/client@6.14.0 bcrypt@6.0.0 body-parser@2.2.0 cors@2.8.5 dotenv@17.2.1 express@5.1.0 joi@18.0.0 jsonwebtoken@9.0.2 nanoid@5.1.5
+```
+
+-Dev
+```
+npm install --save-dev nodemon@3.1.10 prisma@6.14.0
+```
+
+
+-------------------------------------------------------------
+
+# src/service/order.service.js
+```
+
+import { prisma } from "../utils/db.js";
+
+export const createOrderService = async (userId, payload) => {
+  const { items, couponCode } = payload;
+
+  const productIds = items.map((item) => item.productId);
+  const products = await prisma.product.findMany({
+    where: {
+      id: {
+        in: productIds,
+      },
+    },
+  });
+
+  let jumlah_diskon = 0;
+  let couponId = null;
+
+  let subtotal = 0;
+  for (const item of items) {
+    const product = products.find((p) => p.id === item.productId);
+
+    if (!product) {
+      throw new Error(`Product with ID ${item.productId} not found`);
+    }
+
+    subtotal += product.price * item.quantity;
+  }
+
+  // Perbaruan data coupons
+  if (couponCode) {
+    const coupon = await prisma.coupon.findUnique({
+      where: {
+        code: couponCode,
+      },
+    });
+
+    if (!coupon) throw new Error("Coupon code is not valid");
+
+    if (coupon.expiration < new Date().toDateString()) {
+      await prisma.coupon.update({
+        where: {
+          id: coupon.id,
+        },
+        data: {
+          is_active: false,
+        },
+      });
+    }
+
+    if (!coupon.is_active) throw new Error("This coupon is no longer active.");
+    if (coupon.userId !== userId) {
+      throw new Error("This coupon is not valid for this users");
+    }
+
+    if (coupon.jenis_diskon === "nominal") {
+      jumlah_diskon = coupon.nilai_diskon;
+    } else if (coupon.jenis_diskon === "persentase") {
+      jumlah_diskon = subtotal * (coupon.nilai_diskon / 100);
+    }
+
+    couponId = coupon.id;
+
+    await prisma.coupon.update({
+      where: {
+        id: coupon.id,
+      },
+      data: {
+        is_active: false,
+      },
+    });
+  }
+
+  const tax = subtotal * 0.1; // pajak 10%
+  const grandTotal = subtotal + tax - jumlah_diskon;
+
+  const createdOrder = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.create({
+      data: {
+        userId,
+        subtotal,
+        tax,
+        grandTotal,
+        couponId: couponId,
+      },
+    });
+
+    const orderItemsData = items.map((item) => {
+      const product = products.find((p) => p.id == item.productId);
+
+      return {
+        orderId: order.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: product.price,
+      };
+    });
+    await tx.orderItem.createMany({
+      data: orderItemsData,
+    });
+
+    return order;
+  });
+
+  return createdOrder;
+};
+
+export const getOrdersByUserService = async (userId) => {
+  return await prisma.order.findMany({
+    where: {
+      userId: userId,
+      is_archived: false,
+    },
+    include: {
+      orderItem: {
+        include: {
+          product: {
+            select: {
+              name: true,
+              imageUrl: true,
+            },
+          },
+        },
+      },
+      Cupon: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+
+export const getOrdersByIdService = async (orderId, user) => {
+  const order = await prisma.order.findUnique({
+    where: {
+      id: orderId,
+    },
+    include: {
+      orderItem: {
+        include: {
+          product: true,
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  if (user.role !== "ADMIN" && order.userId !== user.id) {
+    throw new Error("Forbidden");
+  }
+
+  return order;
+};
+
+export const updateOrderStatusService = async (orderId, statusData) => {
+  const order = await prisma.order.findUnique({
+    where: {
+      id: orderId,
+    },
+  });
+
+  if (!order) throw new Error("Order not found");
+
+  return await prisma.order.update({
+    where: {
+      id: orderId,
+    },
+    data: {
+      status: statusData,
+      paidAt:
+        statusData === "paid" || statusData === "completed" ? new Date() : null,
+    },
+  });
+};
+```
